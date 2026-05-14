@@ -150,6 +150,25 @@ Every async action must have a visible loading state:
 - Never modify a migration file after it has been applied — create a new migration instead
 - Run `npx supabase db push` after every new migration during development
 
+### Required GRANT Pattern (Supabase Data API — effective May 30, 2026)
+
+Every `CREATE TABLE` in a migration **must** be followed immediately by explicit GRANTs. Without them, `supabase-js` (PostgREST) cannot access the table and returns a `42501` error.
+
+```sql
+-- After every CREATE TABLE in public schema:
+grant select on public.table_name to anon;
+grant select, insert, update, delete on public.table_name to authenticated;
+grant select, insert, update, delete on public.table_name to service_role;
+alter table public.table_name enable row level security;
+-- ...RLS policies follow
+```
+
+- `anon` — unauthenticated requests (grant select only where public access is intentional; omit if table should never be public)
+- `authenticated` — all logged-in users (RLS policies then restrict to authorized rows)
+- `service_role` — server-side API routes using `SUPABASE_SERVICE_ROLE_KEY`
+
+This pattern must appear in every migration file that creates a table. No exceptions.
+
 ---
 
 ## Multi-Tenancy
@@ -191,8 +210,9 @@ When implementing any feature, consult the relevant document before writing code
 
 ## Current Build Status
 
-**Prerequisites (Steps 0.0–0.7):** In progress
-**Phase 1–6:** Not yet started
+**Prerequisites (Steps 0.0–0.7):** Complete
+**Phase 1:** Ready to begin
+**Phase 2–6:** Not yet started
 
 Work through CFE-BUILD-PROMPT-v2.2.md sequentially. Do not skip steps. Do not start the next step until the current step's test criteria pass.
 
